@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Hidden Tab Timing Probe</title>
+</head>
+<body>
+  <h1>Hidden Tab Timing Probe</h1>
+  <audio id="probe-audio" loop></audio>
+  <video id="probe-video" loop playsinline muted style="width: 64px; height: 64px;"></video>
+  <script>
+    function makeWavDataUri(seconds = 5, sampleRate = 8000) {
+      const numSamples = seconds * sampleRate;
+      const header = new Uint8Array(44 + numSamples);
+      const view = new DataView(header.buffer);
+
+      function writeString(offset, string) {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      }
+
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + numSamples, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM
+      view.setUint16(22, 1, true); // Mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate, true);
+      view.setUint16(32, 1, true);
+      view.setUint16(34, 8, true);
+      writeString(36, 'data');
+      view.setUint32(40, numSamples, true);
+
+      for (let i = 0; i < numSamples; i++) {
+        const sample = 128 + Math.round(20 * Math.sin(2 * Math.PI * 440 * (i / sampleRate)));
+        view.setUint8(44 + i, sample);
+      }
+
+      let binary = '';
+      const len = header.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(header[i]);
+      }
+      return 'data:audio/wav;base64,' + btoa(binary);
+    }
+
+    const audio = document.getElementById('probe-audio');
+    audio.src = makeWavDataUri(5);
+    audio.loop = true;
+    audio.muted = true;
+
+    window.__probe = {
+      raf: [],
+      timeout: [],
+      interval: [],
+      vis: [],
+      media: [],
+      video: []
+    };
+
+    window.__startAudio = function() {
+      return audio.play();
+    };
+
+    audio.play().catch(e => {
+      window.__audioAutoplayBlocked = e.name;
+    });
+
+    // Generate video-only media stream recording
+    window.__videoReady = false;
+    const video = document.getElementById('probe-video');
+    const vCanvas = document.createElement('canvas');
+    vCanvas.width = 64;
+    vCanvas.height = 64;
+    const vCtx = vCanvas.getContext('2d');
+    const vStream = vCanvas.captureStream(30);
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm';
+    const vRecorder = new MediaRecorder(vStream, { mimeType });
+    const vChunks = [];
+
+    vRecorder.ondataavailable = e => {
+      if (e.data && e.data.size > 0) {
+        vChunks.push(e.data);
+      }
+    };
+    vRecorder.onstop = () => {
+      const blob = new Blob(vChunks, { type: mimeType });
+      video.src = URL.createObjectURL(blob);
+      video.muted = true;
+      video.loop = true;
+      video.play().then(() => {
+        window.__videoReady = true;
+      }).catch(e => {
+        window.__videoReady = true;
+      });
+    };
+
+    vRecorder.start();
+    let vFrame = 0;
+    const vInterval = setInterval(() => {
+      vCtx.fillStyle = (vFrame % 2 === 0) ? '#ff0000' : '#0000ff';
+      vCtx.fillRect(0, 0, 64, 64);
+      vFrame++;
+      if (vFrame >= 60) {
+        clearInterval(vInterval);
+        vRecorder.stop();
+      }
+    }, 33);
+
+    // requestAnimationFrame loop
+    function rafLoop() {
+      window.__probe.raf.push(performance.now());
+      requestAnimationFrame(rafLoop);
+    }
+    requestAnimationFrame(rafLoop);
+
+    // chained setTimeout(fn, 10) loop
+    function timeoutLoop() {
+      window.__probe.timeout.push(performance.now());
+      setTimeout(timeoutLoop, 10);
+    }
+    setTimeout(timeoutLoop, 10);
+
+    // setInterval(fn, 100) loop created while page is still visible
+    let lastVis = null;
+    setInterval(function() {
+      const now = performance.now();
+      window.__probe.interval.push(now);
+
+      const desc = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+      const realVis = desc ? desc.get.call(document) : document.visibilityState;
+      if (realVis !== lastVis) {
+        lastVis = realVis;
+        window.__probe.vis.push({ t: now, state: realVis });
+      }
+
+      window.__probe.media.push({
+        t: now,
+        paused: audio.paused,
+        currentTime: audio.currentTime,
+        muted: audio.muted
+      });
+
+      window.__probe.video.push({
+        t: now,
+        paused: video.paused,
+        currentTime: video.currentTime,
+        muted: video.muted
+      });
+    }, 100);
+
+    window.__stats = function(t0, t1) {
+      const dt = (t1 - t0) / 1000;
+      if (dt <= 0) {
+        return { raf: 0, timeout: 0, interval: 0 };
+      }
+      function countBetween(arr) {
+        let count = 0;
+        for (let i = 0; i < arr.length; i++) {
+          if (arr[i] >= t0 && arr[i] <= t1) {
+            count++;
+          }
+        }
+        return count;
+      }
+      return {
+        raf: Math.round((countBetween(window.__probe.raf) / dt) * 100) / 100,
+        timeout: Math.round((countBetween(window.__probe.timeout) / dt) * 100) / 100,
+        interval: Math.round((countBetween(window.__probe.interval) / dt) * 100) / 100
+      };
+    };
+
+    window.__mediaStats = function(t0, t1) {
+      const samples = window.__probe.media.filter(s => s.t >= t0 && s.t <= t1);
+      if (samples.length === 0) {
+        return {
+          playingAtEnd: !audio.paused,
+          currentTimeAdvancedWhileHidden: false,
+          visibleMuted: audio.muted
+        };
+      }
+      const first = samples[0];
+      const last = samples[samples.length - 1];
+      let minCt = first.currentTime;
+      let maxCt = first.currentTime;
+      for (const s of samples) {
+        if (s.currentTime < minCt) minCt = s.currentTime;
+        if (s.currentTime > maxCt) maxCt = s.currentTime;
+      }
+      const advanced = (maxCt - minCt > 0.5) || (last.currentTime > first.currentTime + 0.5);
+      return {
+        playingAtEnd: !audio.paused,
+        currentTimeAdvancedWhileHidden: advanced && !audio.paused,
+        visibleMuted: audio.muted
+      };
+    };
+
+    window.__videoStats = function(t0, t1) {
+      const samples = window.__probe.video.filter(s => s.t >= t0 && s.t <= t1);
+      if (samples.length === 0) {
+        return {
+          playingAtEnd: !video.paused,
+          currentTimeAdvancedWhileHidden: false,
+          visibleMuted: video.muted
+        };
+      }
+      const first = samples[0];
+      const last = samples[samples.length - 1];
+      let minCt = first.currentTime;
+      let maxCt = first.currentTime;
+      for (const s of samples) {
+        if (s.currentTime < minCt) minCt = s.currentTime;
+        if (s.currentTime > maxCt) maxCt = s.currentTime;
+      }
+      const advanced = (maxCt - minCt > 0.5) || (last.currentTime > first.currentTime + 0.5);
+      return {
+        playingAtEnd: !video.paused,
+        currentTimeAdvancedWhileHidden: advanced && !video.paused,
+        visibleMuted: video.muted
+      };
+    };
+  </script>
+</body>
+</html>

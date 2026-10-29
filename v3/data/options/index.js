@@ -30,6 +30,8 @@ chrome.storage.local.get({
   'visibility': true,
   'pointercapture': true,
   'fullscreen': false,
+  'timers': true,
+  'media': true,
   'mouseleave': true,
   'mouseout': true,
   'log': false,
@@ -46,6 +48,8 @@ chrome.storage.local.get({
   document.getElementById('visibility').checked = prefs.visibility;
   document.getElementById('pointercapture').checked = prefs.pointercapture;
   document.getElementById('fullscreen').checked = prefs.fullscreen;
+  document.getElementById('timers').checked = prefs.timers;
+  document.getElementById('media').checked = prefs.media;
   document.getElementById('blur').checked = prefs.blur;
   document.getElementById('mouseleave').checked = prefs.mouseleave;
   document.getElementById('mouseout').checked = prefs.mouseout;
@@ -74,6 +78,8 @@ document.getElementById('save').addEventListener('click', async () => {
     'visibility': document.getElementById('visibility').checked,
     'pointercapture': document.getElementById('pointercapture').checked,
     'fullscreen': document.getElementById('fullscreen').checked,
+    'timers': document.getElementById('timers').checked,
+    'media': document.getElementById('media').checked,
     'focus': document.getElementById('focus').checked,
     'redirect': document.getElementById('redirect').checked,
     'log': document.getElementById('log').checked,
