@@ -35,7 +35,6 @@ chrome.storage.local.get({
   'mouseleave': true,
   'mouseout': true,
   'log': false,
-  'faqs': true,
   'badge': true,
   'reload': false,
   'policies': null,
@@ -54,7 +53,6 @@ chrome.storage.local.get({
   document.getElementById('mouseleave').checked = prefs.mouseleave;
   document.getElementById('mouseout').checked = prefs.mouseout;
   document.getElementById('log').checked = prefs.log;
-  document.getElementById('faqs').checked = prefs.faqs;
   document.getElementById('badge').checked = prefs.badge;
   document.getElementById('reload').checked = prefs.reload;
   document.getElementById('policies').value = prefs.policies ? JSON.stringify(prefs.policies, null, '  ') : '';
@@ -83,7 +81,6 @@ document.getElementById('save').addEventListener('click', async () => {
     'focus': document.getElementById('focus').checked,
     'redirect': document.getElementById('redirect').checked,
     'log': document.getElementById('log').checked,
-    'faqs': document.getElementById('faqs').checked,
     'badge': document.getElementById('badge').checked,
     'reload': document.getElementById('reload').checked
   };
@@ -145,28 +142,3 @@ document.getElementById('reset').addEventListener('click', e => {
     });
   }
 });
-
-// support
-document.getElementById('support').addEventListener('click', () => chrome.tabs.create({
-  url: chrome.runtime.getManifest().homepage_url + '?rd=donate'
-}));
-
-// report
-document.getElementById('report').addEventListener('click', () => chrome.tabs.create({
-  url: chrome.runtime.getManifest().homepage_url + '#reviews'
-}));
-
-// test
-document.getElementById('test').addEventListener('click', () => chrome.tabs.create({
-  url: 'https://webbrowsertools.com/test-always-active/'
-}));
-
-// links
-const links = window.links = (d = document) => {
-  for (const a of [...d.querySelectorAll('[data-href]')]) {
-    if (a.hasAttribute('href') === false) {
-      a.href = chrome.runtime.getManifest().homepage_url + '#' + a.dataset.href;
-    }
-  }
-};
-document.addEventListener('DOMContentLoaded', () => links());

@@ -46,8 +46,6 @@
     <div class="grid">
       <label for="log">Display logs (for debugging purpose only)</label>
       <input type="checkbox" id="log">
-      <label for="faqs">Open FAQs page on updates (recommended)</label>
-      <input type="checkbox" id="faqs">
       <label for="badge">Display the ON/OFF badge text on the extension button</label>
       <input type="checkbox" id="badge">
       <label for="reload">Reload the page when toggled (the old behavior; you lose unsaved data)</label>
@@ -62,17 +60,12 @@
     <input type="checkbox" id="all-sites">
     <label for="all-sites">Enable on all websites (adds the "*" wildcard to the list). Selecting this check box adds the wildcard; clearing it removes the wildcard.</label>
   </div>
-  <h2><a data-href="faq6" target="_blank">Policies</a></h2>
+  <h2>Policies</h2>
   <p id="policies-description">A JSON object to prevent blocking of some events that conflict with particular hostnames. Example: {"docs.google.com": ["blur"]}</p>
   <textarea id="policies" rows="10" placeholder='{
   "docs.google.com": ["blur"]
 }' aria-describedby="policies-description"></textarea>
 
-  <p>
-    <input type="button" id="support" value="Support Development">
-    <input type="button" id="report" value="Report Bugs">
-    <input type="button" id="test" value="Test Rules">
-  </p>
   <div>
     <input type="button" id="reset" value="Factory Reset (double-click)">
     <input type="button" id="save" value="Save Options">

@@ -6,7 +6,6 @@ This extension protects against web pages tracking the activity state of the pag
 [![YouTube Preview](https://img.youtube.com/vi/7gr44trZr_o/0.jpg)](https://www.youtube.com/watch?v=7gr44trZr_o)
 
 ## Links:
-  * FAQs Page: https://webextension.org/listing/always-active.html
   * Chrome Webstore: https://chromewebstore.google.com/detail/always-active-window-alwa/ehllkhjndgnlokhomdlhgbineffifcbj
   * Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/mpappcpgjachepaibhgpbnhhmneojmkc
   * Firefox Add-ons: https://addons.mozilla.org/firefox/addon/always-visible/
